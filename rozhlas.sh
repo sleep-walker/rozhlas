@@ -13,12 +13,13 @@ trap cleanup SIGINT SIGQUIT
 
 cleanup() {
     rm -f "${tmp_files[@]}"
+    exit 0
 }
 
 add_tmp() {
-    local tmp="$(mktemp)"
-    tmp_files[${#tmp_files[@]}]="$tmp"
-    echo "$tmp"
+    local _tmp="$(mktemp)"
+    tmp_files[${#tmp_files[@]}]="$_tmp"
+    eval "$1"="'$_tmp'"
 }
 
 htmldecode() {
@@ -39,7 +40,8 @@ get_xpath_attribute() {
 }
 
 get_mp3_from_page() {
-    local tmp="$(add_tmp)"
+    local tmp
+    add_tmp tmp
     httpget "$1" -O "$tmp"
     local id="$(get_xpath_attribute "//div/@data-id")"
     local label="$(htmldecode "$(get_xpath_attribute "//div/@data-event_label")")"
@@ -61,7 +63,8 @@ get_mp3_from_page() {
 
 
 get_list() {
-    local tmp="$(add_tmp)"
+    local tmp
+    add_tmp tmp
     httpget "$1" -O "$tmp" -q
     readarray -t -O "${#urls[@]}" urls < <(get_xpath_attribute "//li[@class=\"item\"]/div/a/@href" | sort -u | sed 's@^@http://www.rozhlas.cz@')
 }
@@ -74,6 +77,7 @@ generate_urls() {
 
 urls=()
 failed_urls=()
+tmp_files=()
 generate_urls
 
 inform "Found URLs:"
